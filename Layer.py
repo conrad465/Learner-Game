@@ -2,7 +2,7 @@ import numpy as np
 import random
 import vars as v
 v.init()
-
+#players should assess their own fitness
 class Layer:
 
     def __init__(self, nodes, past):
@@ -29,9 +29,9 @@ class Layer:
 
         rand = random.uniform(0,1)
         offset = self.bias / 2 + 1
-        if rand > .5:
+        if rand > .75:
             self.bias += offset
-        else:
+        elif rand <.25:
             self.bias -= offset
 
     def mate(self, new_gene):

@@ -11,7 +11,12 @@ def init():
     global gravity
     global jump_vel
     global gen_dir; gen_dir = 'generations/'
-    global mutate_range; mutate_range = .5
+    global mutate_range; mutate_range = .4
+    global padding; padding = 4
+    global vision; vision = 2
+    global awareness; awareness= (2*(vision+1))* (2*(vision+1))
+    global gen_size; gen_size = 30
+    global env_timeout; env_timeout = 130
     size = 700
     cell_size = 10
     player_scale = 4
