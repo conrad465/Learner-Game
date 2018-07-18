@@ -36,16 +36,24 @@ def issue_command(command):
 
 #issue_command("Blue speak")
 
+
+
 path = os.path.dirname(os.path.abspath(__file__))
 #
 # for file in os.listdir(path + "/old_generations/" + gen):
 #     print(file)
 def hello():
     print("hello")
+def pickle_practicew():
+    a = hello
+    b = hello
 
-a = hello
-b = hello
+    a()
+    n = Net.Net([10] , 10,[a,b])
+    pickle.dump( n, open( "save.p", "wb" ) )
 
-a()
-n = Net.Net([10] , 10,[a,b])
-pickle.dump( n, open( "save.p", "wb" ) )
+parents = [(0,1), (9,7), (8,2)]
+for x in parents:
+    print(x[1])
+parents = sorted(parents, key =lambda x: x[1])
+print(parents)

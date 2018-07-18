@@ -101,7 +101,7 @@ class Player(Entity):
         for key in player_locs:
             if key != self.pid:
                 enemy_loc = player_locs[key]
-        features = list(chain.from_iterable(pgrid)) + list(enemy_loc) + [self.row, self.col]
+        features = list(chain.from_iterable(pgrid)) + list(enemy_loc) + [self.row, self.col] + [self.dir]
         features = features + list(zeros(40 - len(features)))
 
         self.actions[self.net.decide(features)]()

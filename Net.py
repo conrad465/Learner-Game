@@ -41,7 +41,6 @@ class Net:
         out = start_layer.calc(input)
         for layer in layers:
             out = layer.calc(out)
-        print(out)
         return np.argmax(out)
 
 
