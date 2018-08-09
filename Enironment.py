@@ -12,9 +12,11 @@ global brain1
 global brain2
 global p1
 global p2
-global gen; gen = 1
+global gen; gen = 419
 global entity_index
 
+global players; players = list()
+global brains; brains = list()
 window = pygame.display.set_mode((v.size,v.size))
 elist = list()
 game_grid = numpy.zeros((int(v.squares / v.block_scale), int(v.squares / v.block_scale)), dtype=int)
@@ -22,8 +24,10 @@ game_grid = numpy.zeros((int(v.squares / v.block_scale), int(v.squares / v.block
 
 # saves the current generation members
 def save_players():
-    p1.save(gen)
-    p2.save(gen)
+    for player in players:
+        player.save(gen)
+    # p1.save(gen)
+    # p2.save(gen)
 
 
 # called to shuffle genes from parents
@@ -32,45 +36,51 @@ def shuffle_genes(parent_name1, parent_name2):
         with open("generations/" + str(gen - 1) + "/" + parent_name2, 'rb') as parent_file2:
             parent1 = pickle.load(parent_file1)
             parent2 = pickle.load(parent_file2)
-            if random.random() > .75:
+            if random.random() > .7:
                 brain = parent1
-            elif random.random() > .75:
+            elif random.random() > .7:
                 brain = parent2
             else:
                 brain = parent1.mate(parent2)
+                print("mating")
 
-            if random.random() > .7:
-                brain.mutate()
+            if random.random() > .3:
+                print("mutating")
+                brain = brain.mutate()
             return brain
+
+
+# TODO create function to load specific gneerations
 
 
 # called to create and assess a generation from the genes of a previous one
 def run_new_generation():
-    global brain1
-    global brain2
     parents = get_parents(gen, v.generation_carryover)
-    for parent in parents:
-        copy2("generations/" + str(gen - 1) + "/" + parent, "generations/" + str(gen) + "/")
+    # for i in range(v.next_gen):
+    #     copy2("generations/" + str(gen - 1) + "/" + parents[i], "generations/" + str(gen) + "/")
 
     for i in range(v.gen_size):
-        parent_index1 = random.randint(0, len(parents)-1)
-        parent_index2 = random.randint(0, len(parents)-1)
-        brain1 = shuffle_genes(parents[parent_index1], parents[parent_index2])
-
-        parent_index1 = random.randint(0, len(parents)-1)
-        parent_index2 = random.randint(0, len(parents)-1)
-        brain2 = shuffle_genes(parents[parent_index1], parents[parent_index2])
+        brains.clear()
+        players.clear()
+        for i in range(v.player_num):
+            parent_index1 = random.randint(0, len(parents)-1)
+            parent_index2 = random.randint(0, len(parents)-1)
+            print("Picking " + parents[parent_index1])
+            print("Picking " + parents[parent_index2])
+            brains.append(shuffle_genes(parents[parent_index1], parents[parent_index2]))
         setup()
+    run_new_species(3)
     rmtree("generations/" + str(gen - 1))
 
 
 # called to create and assess the first generation of a learning species randomly
-def run_new_species():
-    global brain1
-    global brain2
-    for i in range(v.generation_carryover):
-        brain1 = Net.Net([60], 40, 4)
-        brain2 = Net.Net([60], 40, 4)
+def run_new_species(num):
+
+    for i in range(num):
+        brains.clear()
+        players.clear()
+        for j in range(v.player_num):
+            brains.append(Net.Net([20], v.inputs, 4))
         setup()
 
 
@@ -78,12 +88,14 @@ def run_new_species():
 def mother_nature():
     global gen
     while True:
+
+        print(brains)
         if not os.path.exists("generations/" + str(gen)):
             os.makedirs("generations/" + str(gen))
         if gen != 1:
             run_new_generation()
         else:
-            run_new_species()
+            run_new_species(v.generation_carryover)
         gen += 1
 
 
@@ -93,14 +105,18 @@ def step():
     timer = 0
     while timer < v.env_timeout:
         timer += 1
-        pygame.time.delay(10)
         pygame.display.update()
         window.fill((0, 0, 0))
         e.group.update()
-        pygame.event.get()
+        events = pygame.event.get()
 
-        p1.decide()
-        p2.decide()
+        for p in range(len(players)):
+            if p!=-1:
+                players[p].decide()
+            else:
+                players[p].decide(events)
+        if check_win():
+            timer += v.env_timeout
 
         for i in e.group:
             window.blit(i.image, i.rect)
@@ -111,11 +127,14 @@ def step():
 # initialize members of a round of evolution
 def add_sprites():
     #TODO Add algorithm to drop in open spaces in any map
-    global p1
-    global p2
-    p1 = e.Player(1, 100, 200, brain1)
-    p2 = e.Player(2, 400, 500, brain2)
-    e.group.add_sprite([p1, p2])
+    for i in range(v.player_num):
+        [row, col] = get_space()
+        # print(row)
+        # print(col)
+        players.append(e.Player(i+2, row, col, brains[i]))
+
+
+    e.group.add_sprite(players)
 
 
 # loads the map from a pre-made map file and initializes the game grid
@@ -153,17 +172,40 @@ def get_parents(curr_gen, num):
     old_gen = curr_gen - 1
     path = os.path.dirname(os.path.abspath(__file__))
     parents = list()
-    for file in os.listdir(path + "/generations/" + str(old_gen)):
+    average_fitness = 0
+    gen_dir = path + "/generations/" + str(old_gen)
+    for file in os.listdir(gen_dir):
         # parses stored generation members with naming convention ["date time"_fit:## gen:#]
         index = file.index("fit:") + 4
         fitness = int(file[index:index + 2])
+        average_fitness+=fitness
         parents.append((file, fitness))
+    average_fitness/=1.0*len(os.listdir(gen_dir))
+    with open("/Users/conradmitchell/PycharmProjects/Learner-Game/gen.csv", "a") as growth:
+        growth.write(str(old_gen) + "," + str(average_fitness)+",\n")
     parents = sorted(parents, key=lambda x: x[1], reverse=True)
     parents = parents[0:num]
     print("Best from last generation were:\n " + parents[0][0] + "\n" + parents[1][0])
     return [item[0] for item in parents]
 
 
+# checks if either player has killed each other
+def check_win():
+    a = players
+
+    for player in players:
+        if player.fit < 0:
+            players[(-1*player.fit) -2].fit += 1
+            player.fit = 0
+            #return True
+    return False
+
+
+def get_space():
+    while True:
+        r = random.randint(0, len(game_grid) - 2)
+        c = random.randint(0, len(game_grid) - 1)
+        if game_grid[r][c] == 0 and game_grid[r+1][c] == 1:
+            return [c*v.block_size, r*v.block_size]
+
 mother_nature()
-
-

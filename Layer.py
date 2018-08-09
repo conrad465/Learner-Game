@@ -25,13 +25,14 @@ class Layer:
             for c in range(len(self.weights[0])):
                 rand = random.uniform(0,1)
                 if rand < v.mutate_range:
-                    self.weights[r][c] = random.uniform(-1, 1)
+                    rand = random.uniform(.9, 1.1)
+                    self.weights[r][c] *= rand
 
         rand = random.uniform(0,1)
         offset = self.bias / 2 + 1
-        if rand > .75:
+        if rand > .6:
             self.bias += offset
-        elif rand <.25:
+        elif rand <.4:
             self.bias -= offset
 
     def mate(self, new_gene):
@@ -57,3 +58,6 @@ class Layer:
                 child.weights[r][c] = self.weights[r][c]
         child.bias = self.bias
         return child
+
+    def print(self):
+        print(self.weights)

@@ -23,17 +23,26 @@ class Net:
             prev_nodes = node_num
         self.layers.append(l.Layer(decisions, prev_nodes))
 
-    def save_net(self, travel, gen,kill = 0, alive = 0):
-        self.assess_fitness(travel)
-        f_name = v.gen_dir+str(gen)+"/" + str(datetime.now()) + '_fit:' + str(self.fitness) +"_gen:"  + '1'
-        with open(f_name, 'wb') as net:
-            p.dump(self, net)
-        net.close()
+    def save_net(self, travel, gen, kills):
+        placeholder = ""
+        self.assess_fitness(travel, kills)
+        if self.fitness<10:
+            placeholder = "0"
+        f_name = v.gen_dir+str(gen)+"/" + str(datetime.now()) + '_fit:' +placeholder + str(self.fitness)+"_gen:"  + str(gen)
+        if self.fitness > 0:
+            with open(f_name, 'wb') as net:
+                p.dump(self, net)
+            net.close()
 
-    def assess_fitness(self, travel, kills = 0, alive = 0):
-        self.fitness = int((((1.0) * travel) /  ((v.squares / v.block_scale)*(v.squares / v.block_scale)))* 90 + 10)
+    # fitness based on how far the object travelled and if the object killed anything
+    # TODO sprites should pass their own fitness function to abstract the net
+    def assess_fitness(self, travel, kills):
+        self.fitness = ((.8) * travel) / ((v.squares / v.block_scale)*(v.squares / v.block_scale) - 30)
+        if kills >-1:
+            self.fitness += .2 * kills
+        self.fitness = int(self.fitness * 80 + 20)
         print("Travelled " + str(travel)  + " squares")
-        # TODO make fitness more robust
+        print("travel fitness: "+ str(((.8) * travel) / ((v.squares / v.block_scale)*(v.squares / v.block_scale))*80 +20 ))
 
     def decide(self, input):
         layers = iter(self.layers)
@@ -51,5 +60,12 @@ class Net:
 
     def mate(self, partner):
         for i in range(len(self.layers)):
-            self.layers[i].mate(partner.layers[i])
+            self.layers[i] = self.layers[i].mate(partner.layers[i])
         return self
+
+
+    def print(self):
+        for l in self.layers:
+            l.print()
+
+        print("")
